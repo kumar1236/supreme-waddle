@@ -1,0 +1,61 @@
+---
+- hosts: "{{ host_group }}"
+  vars_files:
+    - vars/default.yml
+  tasks:
+    - name: install MySql Repo from local repo
+      yum:
+        name: https://repo.mysql.com//mysql80-community-release-el7-3.noarch.rpm
+        state: installed
+
+    - name: Install Mysql Server
+      yum:
+        name: mysql-server
+        state: present
+    
+    - name: Satrt Mysql
+      service:
+        name: mysqld    
+        state: started
+
+    - name: Colleting MySql root password from log
+      shell:
+        cmd: grep "A temporary password is generated for root@localhost" /var/log/mysqld.log | awk '{print $NF}'
+      register: mysql_root_password
+   
+    - name: debug mysql_root_password
+      debug:
+        msg: "{{ mysql_root_password }}"
+
+    - name: Update MySql password
+      command: mysql --user root --password={{ mysql_root_password.stdout }} --connect-expired-password --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ root_mysql_password }}';"
+      when: mysql_root_password is undefined
+
+    - name: Create database for WOrdpress
+      mysql_db:
+        name: wordpress
+        state: present
+        login_user: root
+        #login_host: "{{ wordpress_host }}"
+        login_password: "{{ root_mysql_password }}"
+
+    - name: Create user for wordpress and grant privilliges
+      mysql_user:
+        name: wordpress
+        password: Test@1234
+        priv: '*.*:ALL'
+        state: present
+        login_user: root
+        login_password: "{{ root_mysql_password }}"
+
+  handlers:
+    - name: Mysql Start
+      service:
+        name: mysqld
+        state: started
+
+    - name: Mysql Restart
+      service:
+        name: mysqld
+        start: restarted
+

@@ -1,0 +1,10 @@
+http_conf: "wordpress.conf"
+http_port: 80
+app_user: root
+http_host: "wordpress"
+remirepo: "https://rpms.remirepo.net/enterprise/remi-release-7.rpm"
+root_mysql_password: Noor@1234
+wordpress_db: wordpress
+wordpress_user: wordpress
+wordpress_pass: Test@1234
+wordpress_host: localhost

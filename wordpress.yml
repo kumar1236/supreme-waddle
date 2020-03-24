@@ -1,0 +1,119 @@
+---
+- hosts: "{{ host_group }}"
+  vars:
+    http_host: "wordpress"
+    remirepo: "https://rpms.remirepo.net/enterprise/remi-release-7.rpm"
+  vars_files:
+    - vars/default.yml
+  tasks:
+    - name: Install RemiRepo
+      yum:
+        name: "{{ remirepo }}"
+        state: present
+
+    - name : Enable Remi-PHP73
+      shell: yum-config-manager --enable remi-php73
+
+    - name: Installing PHP Packages
+      yum:
+        name: "{{ item }}"
+      loop:
+        - php
+        - php-common
+        - php-mysql
+        - php-gd
+        - php-xml
+        - php-mbstring
+        - php-mcrypt
+
+    - name: Installing Apache
+      yum:
+        name: httpd
+        state: present
+
+    - name: Create Document directory
+      file:
+        path: /var/www/html/{{ http_host }}
+        state: directory
+        owner: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Upload test html and php pages
+      copy:
+        src: "{{ item }}"
+        dest: /var/www/html/{{ http_host }}
+      loop:
+        - test.html
+        - info.php
+      notify: Restart Apache
+
+   ## - name: Verifying Sample HTML page
+   #   uri:
+   #     url: http://{{ ansible_host }}/test.html
+   ##     return_content: yes
+    #  register: htmlresult
+
+    #- name: Verifying Sample PHP page
+    #  uri:
+    #    url: http://{{ ansible_host }}/info.php
+    #    return_content: yes
+    #  register: phpresult
+
+    - name: Downloading Wordpress
+      get_url:
+        url: https://wordpress.org/latest.tar.gz
+        dest: /var/www/html/
+      register: downloadwordpress
+    #  when: htmlresult and phpresult is succeeded
+
+    - debug:
+        msg: "{{ downloadwordpress.dest }}"
+
+    - name: Extract the wordpress TAR
+      unarchive:
+        src: "{{ downloadwordpress.dest }}"
+        dest: /var/www/html/
+      when: downloadwordpress is succeeded
+
+    - name: Delete the downloaded tar file
+      file:
+        path: /var/www/html/{{ downloadwordpress.dest }}
+        state: absent
+        
+    - name: Set ownership for Wordpress file
+      file:
+        path: "/var/www/html/{{ http_host }}"
+        state: directory
+        recurse: yes
+        owner: apache
+        group: apache
+      tags: [ wordpress ]
+
+    - name: Set permissions for Wordpress directories
+      shell: "/usr/bin/find /var/www/html/{{ http_host }}/ -type d -exec chmod 750 {} \\;"
+      tags: [ wordpress ]
+
+    - name: Set permissions for Wordpress files
+      shell: "/usr/bin/find /var/www/html/{{ http_host }}/ -type f -exec chmod 640 {} \\;"
+      tags: [ wordpress ]
+
+    - name: Set up wp-config
+      template:
+        src: "wp-config.php.j2"
+        dest: "/var/www/html/{{ http_host }}/wp-config.php"
+      tags: [ wordpress ]
+   
+  handlers:
+    - name: Reload Apache
+      service:
+        name: httpd
+        state: reloaded
+
+    - name: Restart Apache
+      service:
+        name: httpd
+        state: restarted
+
+- name: include database
+  include: database.yml
+

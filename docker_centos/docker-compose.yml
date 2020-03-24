@@ -1,0 +1,12 @@
+version: '2'
+services:
+  server1.com:
+    image: centos7_ssh_enabled 
+    hostname: server1.com
+    ports:
+      - "2224:22"
+  server2.com:
+    image: centos7_ssh_enabled
+    hostname: server2.com
+    ports:
+      - "2225:22"

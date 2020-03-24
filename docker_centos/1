@@ -1,0 +1,4 @@
+docker container run --publish 2224:22 --detach --name server4 centos7_ssh_enabled:latest 
+docker container run --publish 2225:22 --detach --name server5 centos7_ssh_enabled:latest 
+docker container run --publish 2226:22 --detach --name server6 centos7_ssh_enabled:latest 
+docker container run --publish 2227:22 --detach --name server7 centos7_ssh_enabled:latest 
